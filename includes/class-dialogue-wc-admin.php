@@ -28,6 +28,27 @@ class Dialogue_WC_Admin {
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( DIALOGUE_WC_FILE ), array( __CLASS__, 'action_links' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'notice_not_connected' ) );
+		add_action( 'admin_init', array( __CLASS__, 'privacy_policy_content' ) );
+	}
+
+	/**
+	 * Suggested text for the site's privacy policy (Settings → Privacy → Policy guide).
+	 *
+	 * @return void
+	 */
+	public static function privacy_policy_content() {
+		if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
+			return;
+		}
+		$content = '<p>' . esc_html__( 'This store uses Dialogue (nowdialogue.com) for product recommendations, a shopping assistant and A/B tests.', 'dialogue-for-woocommerce' ) . '</p>'
+			. '<p>' . esc_html__( 'Dialogue\'s script sets first-party cookies (dai_v_h, dai_v_s) with a random visitor id and session id, used to recognise returning visitors and to connect orders to Dialogue visits. If the store uses a consent banner that supports the WP Consent API, these cookies are only set after the visitor allows statistics cookies.', 'dialogue-for-woocommerce' ) . '</p>'
+			. '<p>' . esc_html__( 'When an order is paid, the store sends Dialogue the order number, status, totals, currency, coupon codes, the products bought (ids, names, quantities, prices), the random visitor id and whether the order was placed on mobile or desktop. Names, email addresses, phone numbers, addresses and IP addresses are not sent.', 'dialogue-for-woocommerce' ) . '</p>'
+			. '<p>' . sprintf(
+				/* translators: %s: privacy policy URL */
+				esc_html__( 'Dialogue privacy policy: %s', 'dialogue-for-woocommerce' ),
+				'<a href="' . esc_url( Dialogue_WC_Settings::PRIVACY_URL ) . '">' . esc_html( Dialogue_WC_Settings::PRIVACY_URL ) . '</a>'
+			) . '</p>';
+		wp_add_privacy_policy_content( __( 'Dialogue for WooCommerce', 'dialogue-for-woocommerce' ), wp_kses_post( $content ) );
 	}
 
 	/**
@@ -119,22 +140,30 @@ class Dialogue_WC_Admin {
 	}
 
 	/**
-	 * Step 1: register the site with Dialogue, then send the admin to WooCommerce's own
-	 * "approve access" screen (/wc-auth/v1/authorize). WooCommerce then posts read-only API keys
-	 * straight to Dialogue and brings the admin back here.
+	 * Step 1: register the site with Dialogue, then send the admin to Dialogue to log in (or sign up)
+	 * and choose a plan. Dialogue then sends them to WooCommerce's own "approve access" screen
+	 * (/wc-auth/v1/authorize), WooCommerce posts read-only API keys to Dialogue and brings the admin
+	 * back here, where the connection is finished.
 	 *
 	 * @return void
 	 */
 	public static function handle_connect() {
 		self::guard( 'dialogue_wc_connect' );
 
-		$result = Dialogue_WC_Api_Client::post_public(
+		$return_url = self::page_url(
+			array(
+				'dialogue_return' => '1',
+				'_dnonce'         => wp_create_nonce( 'dialogue_wc_return' ),
+			)
+		);
+		$result     = Dialogue_WC_Api_Client::post_public(
 			'/api/woocommerce/connect/start',
 			array(
 				'site_url'       => home_url( '/' ),
 				'rest_url'       => rest_url(),
+				'auth_url'       => home_url( '/wc-auth/v1/authorize' ),
+				'return_url'     => $return_url,
 				'store_name'     => get_bloginfo( 'name' ),
-				'admin_email'    => get_option( 'admin_email' ),
 				'currency'       => get_woocommerce_currency(),
 				'locale'         => determine_locale(),
 				'timezone'       => wp_timezone_string(),
@@ -143,10 +172,16 @@ class Dialogue_WC_Admin {
 				'plugin_version' => DIALOGUE_WC_VERSION,
 			)
 		);
-		if ( is_wp_error( $result ) || empty( $result['site_id'] ) || empty( $result['secret'] ) || empty( $result['callback_url'] ) ) {
+		if ( is_wp_error( $result ) || empty( $result['site_id'] ) || empty( $result['secret'] ) || empty( $result['connect_url'] ) ) {
 			$msg = is_wp_error( $result ) ? $result->get_error_message() : __( 'Unexpected answer from Dialogue.', 'dialogue-for-woocommerce' );
 			/* translators: %s: error */
 			Dialogue_WC_Log::add( 'error', sprintf( __( 'Could not start the connection: %s', 'dialogue-for-woocommerce' ), $msg ) );
+			self::back( 'start_failed' );
+		}
+		$connect_url = esc_url_raw( (string) $result['connect_url'] );
+		$host        = strtolower( (string) wp_parse_url( $connect_url, PHP_URL_HOST ) );
+		if ( 'https' !== wp_parse_url( $connect_url, PHP_URL_SCHEME ) || ! in_array( $host, Dialogue_WC_Settings::dialogue_hosts(), true ) ) {
+			Dialogue_WC_Log::add( 'error', __( 'Could not start the connection: unexpected Dialogue address.', 'dialogue-for-woocommerce' ) );
 			self::back( 'start_failed' );
 		}
 
@@ -159,24 +194,19 @@ class Dialogue_WC_Admin {
 			)
 		);
 
-		$return_url = self::page_url(
-			array(
-				'dialogue_return' => '1',
-				'_dnonce'         => wp_create_nonce( 'dialogue_wc_return' ),
-			)
-		);
-		$authorize  = add_query_arg(
-			array(
-				'app_name'     => rawurlencode( 'Dialogue' ),
-				'scope'        => 'read',
-				'user_id'      => rawurlencode( (string) $result['site_id'] ),
-				'return_url'   => rawurlencode( $return_url ),
-				'callback_url' => rawurlencode( esc_url_raw( (string) $result['callback_url'] ) ),
-			),
-			home_url( '/wc-auth/v1/authorize' )
-		);
-		wp_safe_redirect( $authorize );
+		add_filter( 'allowed_redirect_hosts', array( __CLASS__, 'allow_dialogue_hosts' ) );
+		wp_safe_redirect( $connect_url );
 		exit;
+	}
+
+	/**
+	 * Lets wp_safe_redirect() send the admin to Dialogue's connect page.
+	 *
+	 * @param string[] $hosts Allowed hosts.
+	 * @return string[]
+	 */
+	public static function allow_dialogue_hosts( $hosts ) {
+		return array_merge( (array) $hosts, Dialogue_WC_Settings::dialogue_hosts() );
 	}
 
 	/**
@@ -273,6 +303,7 @@ class Dialogue_WC_Admin {
 		$map = array(
 			'connected'     => array( 'success', __( 'Your store is connected to Dialogue. Products are being imported; this can take a few minutes.', 'dialogue-for-woocommerce' ) ),
 			'denied'        => array( 'warning', __( 'Access was not approved, so the store is not connected. Click "Connect to Dialogue" to try again.', 'dialogue-for-woocommerce' ) ),
+			'needs_login'   => array( 'warning', __( 'Please finish logging in to Dialogue (and choosing a plan), then click "Connect to Dialogue" again.', 'dialogue-for-woocommerce' ) ),
 			'start_failed'  => array( 'error', __( 'Could not reach Dialogue. Check that your site can make outgoing connections and try again.', 'dialogue-for-woocommerce' ) ),
 			'finish_failed' => array( 'error', __( 'Access was approved but Dialogue could not finish connecting. Please try again, or contact Dialogue support.', 'dialogue-for-woocommerce' ) ),
 			'bad_nonce'     => array( 'error', __( 'This link has expired. Please click "Connect to Dialogue" again.', 'dialogue-for-woocommerce' ) ),
@@ -331,7 +362,26 @@ class Dialogue_WC_Admin {
 					</form>
 				<?php else : ?>
 					<p class="dialogue-wc-status"><?php echo esc_html( Dialogue_WC_Settings::STATUS_PENDING === $conn['status'] ? __( 'Waiting for approval', 'dialogue-for-woocommerce' ) : __( 'Not connected', 'dialogue-for-woocommerce' ) ); ?></p>
-					<p><?php esc_html_e( 'Connect your store to add Dialogue\'s AI shopping assistant, product recommendations, Reels and A/B tests. WooCommerce will ask you to approve read-only access; Dialogue only reads your products and never changes your store.', 'dialogue-for-woocommerce' ); ?></p>
+					<p><?php esc_html_e( 'Connect your store to add Dialogue\'s AI shopping assistant, product recommendations, Reels and A/B tests. You will log in to Dialogue (or create an account), choose a plan, and approve read-only access on WooCommerce\'s own screen. Dialogue only reads your products and never changes your store.', 'dialogue-for-woocommerce' ); ?></p>
+					<p class="description">
+						<?php
+						printf(
+							wp_kses(
+								/* translators: 1: terms URL, 2: privacy policy URL */
+								__( 'By connecting you agree to Dialogue\'s <a href="%1$s" target="_blank" rel="noopener noreferrer">Terms of Service</a> and <a href="%2$s" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.', 'dialogue-for-woocommerce' ),
+								array(
+									'a' => array(
+										'href'   => array(),
+										'target' => array(),
+										'rel'    => array(),
+									),
+								)
+							),
+							esc_url( Dialogue_WC_Settings::TERMS_URL ),
+							esc_url( Dialogue_WC_Settings::PRIVACY_URL )
+						);
+						?>
+					</p>
 					<?php if ( $conn['last_error'] ) : ?>
 						<p class="dialogue-wc-error"><?php echo esc_html( $conn['last_error'] ); ?></p>
 					<?php endif; ?>

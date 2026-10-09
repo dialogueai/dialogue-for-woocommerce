@@ -9,13 +9,14 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-09T05:56:31+00:00\n"
+"POT-Creation-Date: 2026-10-09T07:57:51+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: dialogue-for-woocommerce\n"
 
 #. Plugin Name of the plugin
 #: dialogue-for-woocommerce.php
+#: includes/class-dialogue-wc-admin.php:51
 msgid "Dialogue for WooCommerce"
 msgstr ""
 
@@ -31,8 +32,8 @@ msgstr ""
 
 #. Author of the plugin
 #: dialogue-for-woocommerce.php
-#: includes/class-dialogue-wc-admin.php:49
-#: includes/class-dialogue-wc-admin.php:304
+#: includes/class-dialogue-wc-admin.php:70
+#: includes/class-dialogue-wc-admin.php:335
 msgid "Dialogue"
 msgstr ""
 
@@ -41,137 +42,169 @@ msgstr ""
 msgid "https://nowdialogue.com"
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:72
-msgid "Settings"
+#: includes/class-dialogue-wc-admin.php:43
+msgid "This store uses Dialogue (nowdialogue.com) for product recommendations, a shopping assistant and A/B tests."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:91
-msgid "Dialogue is installed but not connected yet."
+#: includes/class-dialogue-wc-admin.php:44
+msgid "Dialogue's script sets first-party cookies (dai_v_h, dai_v_s) with a random visitor id and session id, used to recognise returning visitors and to connect orders to Dialogue visits. If the store uses a consent banner that supports the WP Consent API, these cookies are only set after the visitor allows statistics cookies."
+msgstr ""
+
+#: includes/class-dialogue-wc-admin.php:45
+msgid "When an order is paid, the store sends Dialogue the order number, status, totals, currency, coupon codes, the products bought (ids, names, quantities, prices), the random visitor id and whether the order was placed on mobile or desktop. Names, email addresses, phone numbers, addresses and IP addresses are not sent."
+msgstr ""
+
+#. translators: %s: privacy policy URL
+#: includes/class-dialogue-wc-admin.php:48
+#, php-format
+msgid "Dialogue privacy policy: %s"
 msgstr ""
 
 #: includes/class-dialogue-wc-admin.php:93
+msgid "Settings"
+msgstr ""
+
+#: includes/class-dialogue-wc-admin.php:112
+msgid "Dialogue is installed but not connected yet."
+msgstr ""
+
+#: includes/class-dialogue-wc-admin.php:114
 msgid "Connect now"
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:105
+#: includes/class-dialogue-wc-admin.php:126
 msgid "You do not have permission to do this."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:147
-#: includes/class-dialogue-wc-admin.php:213
+#: includes/class-dialogue-wc-admin.php:176
+#: includes/class-dialogue-wc-admin.php:243
 msgid "Unexpected answer from Dialogue."
 msgstr ""
 
 #. translators: %s: error
-#: includes/class-dialogue-wc-admin.php:149
+#: includes/class-dialogue-wc-admin.php:178
 #, php-format
 msgid "Could not start the connection: %s"
 msgstr ""
 
+#: includes/class-dialogue-wc-admin.php:184
+msgid "Could not start the connection: unexpected Dialogue address."
+msgstr ""
+
 #. translators: %s: error
-#: includes/class-dialogue-wc-admin.php:216
+#: includes/class-dialogue-wc-admin.php:246
 #, php-format
 msgid "Could not finish the connection: %s"
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:231
+#: includes/class-dialogue-wc-admin.php:261
 msgid "Connected to Dialogue. Products are being imported."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:262
+#: includes/class-dialogue-wc-admin.php:292
 msgid "Disconnected from Dialogue."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:274
+#: includes/class-dialogue-wc-admin.php:304
 msgid "Your store is connected to Dialogue. Products are being imported; this can take a few minutes."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:275
+#: includes/class-dialogue-wc-admin.php:305
 msgid "Access was not approved, so the store is not connected. Click \"Connect to Dialogue\" to try again."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:276
+#: includes/class-dialogue-wc-admin.php:306
+msgid "Please finish logging in to Dialogue (and choosing a plan), then click \"Connect to Dialogue\" again."
+msgstr ""
+
+#: includes/class-dialogue-wc-admin.php:307
 msgid "Could not reach Dialogue. Check that your site can make outgoing connections and try again."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:277
+#: includes/class-dialogue-wc-admin.php:308
 msgid "Access was approved but Dialogue could not finish connecting. Please try again, or contact Dialogue support."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:278
+#: includes/class-dialogue-wc-admin.php:309
 msgid "This link has expired. Please click \"Connect to Dialogue\" again."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:279
+#: includes/class-dialogue-wc-admin.php:310
 msgid "Your store was disconnected from Dialogue."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:280
+#: includes/class-dialogue-wc-admin.php:311
 msgid "Product import started. Changes show in Dialogue within a few minutes."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:281
+#: includes/class-dialogue-wc-admin.php:312
 msgid "Could not start the product import. Please try again in a minute."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:311
+#: includes/class-dialogue-wc-admin.php:342
 msgid "Connected"
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:313
+#: includes/class-dialogue-wc-admin.php:344
 msgid "Dialogue store ID"
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:315
+#: includes/class-dialogue-wc-admin.php:346
 msgid "Connected since"
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:318
+#: includes/class-dialogue-wc-admin.php:349
 msgid "Dialogue loads on your store automatically, your products stay in sync, and paid orders are counted toward Dialogue results. No customer names, emails or addresses are sent."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:320
+#: includes/class-dialogue-wc-admin.php:351
 msgid "Open Dialogue dashboard"
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:325
+#: includes/class-dialogue-wc-admin.php:356
 msgid "Sync products now"
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:327
+#: includes/class-dialogue-wc-admin.php:358
 msgid "Disconnect your store from Dialogue? Dialogue will stop showing on your store."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:330
+#: includes/class-dialogue-wc-admin.php:361
 msgid "Disconnect"
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:333
+#: includes/class-dialogue-wc-admin.php:364
 msgid "Waiting for approval"
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:333
+#: includes/class-dialogue-wc-admin.php:364
 msgid "Not connected"
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:334
-msgid "Connect your store to add Dialogue's AI shopping assistant, product recommendations, Reels and A/B tests. WooCommerce will ask you to approve read-only access; Dialogue only reads your products and never changes your store."
+#: includes/class-dialogue-wc-admin.php:365
+msgid "Connect your store to add Dialogue's AI shopping assistant, product recommendations, Reels and A/B tests. You will log in to Dialogue (or create an account), choose a plan, and approve read-only access on WooCommerce's own screen. Dialogue only reads your products and never changes your store."
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:341
+#. translators: 1: terms URL, 2: privacy policy URL
+#: includes/class-dialogue-wc-admin.php:371
+#, php-format
+msgid "By connecting you agree to Dialogue's <a href=\"%1$s\" target=\"_blank\" rel=\"noopener noreferrer\">Terms of Service</a> and <a href=\"%2$s\" target=\"_blank\" rel=\"noopener noreferrer\">Privacy Policy</a>."
+msgstr ""
+
+#: includes/class-dialogue-wc-admin.php:391
 msgid "Connect to Dialogue"
 msgstr ""
 
-#: includes/class-dialogue-wc-admin.php:348
+#: includes/class-dialogue-wc-admin.php:398
 msgid "Recent activity"
 msgstr ""
 
-#: includes/class-dialogue-wc-api-client.php:52
+#: includes/class-dialogue-wc-api-client.php:66
 msgid "This store is not connected to Dialogue yet."
 msgstr ""
 
 #. translators: %d: HTTP status code
-#: includes/class-dialogue-wc-api-client.php:93
+#: includes/class-dialogue-wc-api-client.php:107
 #, php-format
 msgid "Dialogue answered with an error (%d)."
 msgstr ""

@@ -21,18 +21,32 @@ class Dialogue_WC_Api_Client {
 	 * @return array|WP_Error Decoded JSON.
 	 */
 	public static function post_public( $path, array $payload, $timeout = 15 ) {
-		$response = wp_remote_post(
-			Dialogue_WC_Settings::api_base() . $path,
-			array(
-				'timeout' => $timeout,
-				'headers' => array(
-					'Content-Type' => 'application/json',
-					'User-Agent'   => self::user_agent(),
-				),
-				'body'    => wp_json_encode( $payload ),
-			)
+		$args = array(
+			'method'  => 'POST',
+			'timeout' => $timeout,
+			'headers' => array(
+				'Content-Type' => 'application/json',
+				'User-Agent'   => self::user_agent(),
+			),
+			'body'    => wp_json_encode( $payload ),
 		);
-		return self::decode( $response );
+		return self::decode( self::send( $path, $args ) );
+	}
+
+	/**
+	 * Send, switching to the fallback host when the primary one can't be reached (DNS / connection).
+	 *
+	 * @param string $path Path.
+	 * @param array  $args wp_remote_request args.
+	 * @return array|WP_Error
+	 */
+	private static function send( $path, array $args ) {
+		$response = wp_remote_request( Dialogue_WC_Settings::api_base() . $path, $args );
+		if ( is_wp_error( $response ) && 'http_request_failed' === $response->get_error_code() && Dialogue_WC_Settings::can_fall_back() ) {
+			Dialogue_WC_Settings::use_fallback();
+			$response = wp_remote_request( Dialogue_WC_Settings::api_base() . $path, $args );
+		}
+		return $response;
 	}
 
 	/**
@@ -68,7 +82,7 @@ class Dialogue_WC_Api_Client {
 		if ( 'GET' !== $method ) {
 			$args['body'] = $body;
 		}
-		$response = wp_remote_request( Dialogue_WC_Settings::api_base() . $path, $args );
+		$response = self::send( $path, $args );
 		if ( ! $blocking ) {
 			return is_wp_error( $response ) ? $response : array();
 		}

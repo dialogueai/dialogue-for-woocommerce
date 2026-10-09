@@ -10,6 +10,9 @@ const { normalizeOrderEvent, normalizeProductsEvent } = require('./lib/woocommer
 const { WooClient } = require('./lib/woocommerce.client');
 const { mapProduct } = require('./lib/woocommerce.mapping');
 const { defaultsFromSchema, detectedSwatchKey } = require('./lib/woocommerce.schema');
+const { approveUrl, sha256, sameToken } = require('./lib/woocommerce.connect');
+const CALLBACK = 'https://host.docker.internal:4556/api/woocommerce/auth/callback';
+const page = (title, body) => `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:system-ui;background:#f6f6f8;display:flex;justify-content:center;padding:60px}form,div.c{background:#fff;border:1px solid #ddd;border-radius:12px;padding:32px;width:440px}button{background:#7733DE;color:#fff;border:0;border-radius:8px;padding:12px 18px;font-size:16px;width:100%;margin-top:16px}label{display:block;margin:10px 0}input{padding:8px;width:95%}</style></head><body>${body}</body></html>`;
 
 const LOG = path.join(__dirname, '..', 'logs');
 const state = { conns: {} };
@@ -73,9 +76,25 @@ async function api(req, res) {
     if (url === '/api/woocommerce/connect/start') {
       const site_id = 'wc_' + crypto.randomBytes(6).toString('hex');
       const secret = crypto.randomBytes(32).toString('hex');
-      state.conns[site_id] = { site_id, secret, status: 'pending', ...json };
+      const token = crypto.randomBytes(24).toString('hex');
+      state.conns[site_id] = { site_id, secret, status: 'pending', claim_token_hash: sha256(token), ...json };
       log('connect-start.json', redact(json));
-      return send(res, 200, { site_id, secret, callback_url: 'https://host.docker.internal:4556/api/woocommerce/auth/callback' });
+      return send(res, 200, { site_id, secret, callback_url: CALLBACK, connect_url: `https://host.docker.internal:4556/woocommerce/connect?site=${site_id}&token=${token}` });
+    }
+    // Stand-in for dashboard.nowdialogue.com/woocommerce/connect (login -> plan -> Stripe Checkout test mode).
+    if (url === '/woocommerce/connect' || url === '/woocommerce/login' || url === '/woocommerce/checkout' || url === '/woocommerce/paid') {
+      const q = new URL(req.url, 'https://x').searchParams;
+      const conn = state.conns[q.get('site')];
+      if (!conn || !sameToken(q.get('token'), conn.claim_token_hash)) { res.writeHead(404); return res.end('bad link'); }
+      const qs = `site=${conn.site_id}&token=${q.get('token')}`;
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      if (url === '/woocommerce/connect') return res.end(page('Log in', `<form method="get" action="/woocommerce/login"><input type="hidden" name="site" value="${conn.site_id}"><input type="hidden" name="token" value="${q.get('token')}"><h2>Log in to Dialogue</h2><label>Email <input name="email" value="merchant@shop.test"></label><label>Password <input type="password" value="x"></label><button id="login">Log in</button><p>New to Dialogue? Create an account</p></form>`));
+      if (url === '/woocommerce/login') { conn.user_id = 5; line('  CLAIM by user 5'); return res.end(page('Choose plan', `<form method="get" action="/woocommerce/checkout"><input type="hidden" name="site" value="${conn.site_id}"><input type="hidden" name="token" value="${q.get('token')}"><h2>Choose your plan</h2><label><input type="radio" name="plan" value="301" checked> Growth — $49.00 / month · 14-day free trial</label><button id="pay">Continue to payment</button></form>`)); }
+      if (url === '/woocommerce/checkout') return res.end(page('Stripe Checkout (test mode)', `<form method="get" action="/woocommerce/paid"><input type="hidden" name="site" value="${conn.site_id}"><input type="hidden" name="token" value="${q.get('token')}"><h2>Stripe Checkout — TEST MODE</h2><label>Card <input value="4242 4242 4242 4242"></label><button id="subscribe">Start trial</button></form>`));
+      conn.billing = { customer: 'cus_test', subscription: 'sub_test', package_type_id: 301 };
+      line('  BILLING ok (test mode stand-in)');
+      const to = approveUrl(conn.auth_url, conn.site_id, conn.return_url, CALLBACK);
+      return res.end(page('Redirecting', `<script>location.href=${JSON.stringify(to)}</script>`));
     }
     if (url === '/api/woocommerce/auth/callback') {
       const conn = state.conns[json.user_id];
@@ -87,6 +106,8 @@ async function api(req, res) {
     if (url === '/api/woocommerce/connect/finalize') {
       const conn = signed();
       if (!conn) return;
+      if (!conn.user_id) return send(res, 409, { message: 'Please log in to Dialogue to finish connecting. Click Connect again.' });
+      if (!conn.billing) return send(res, 402, { message: 'Please choose a plan in Dialogue to finish connecting. Click Connect again.' });
       const client = new WooClient({ siteUrl: conn.site_url, restUrl: conn.rest_url, consumerKey: conn.ck, consumerSecret: conn.cs, minIntervalMs: 0 });
       await client.get('products', { per_page: 1 });
       line('  keys verified against WooCommerce REST');

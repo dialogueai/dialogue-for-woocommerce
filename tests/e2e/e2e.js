@@ -21,8 +21,8 @@ const results = {};
 const save = () => fs.writeFileSync(path.join(OUT, 'logs', 'e2e-results.json'), JSON.stringify(results, null, 2));
 
 (async () => {
-  const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const browser = await chromium.launch({ args: ['--host-resolver-rules=MAP host.docker.internal 127.0.0.1'] });
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, ignoreHTTPSErrors: true });
   const page = await ctx.newPage();
   page.on('console', (m) => { if (m.type() === 'error') fs.appendFileSync(path.join(OUT, 'logs', 'browser-console.log'), `${m.text()}\n`); });
 
@@ -37,6 +37,17 @@ const save = () => fs.writeFileSync(path.join(OUT, 'logs', 'e2e-results.json'), 
 
   // 2. Connect → WooCommerce approve screen.
   await page.click('input[type=submit][value="Connect to Dialogue"]');
+  await page.waitForLoadState('networkidle');
+  results.connect_page_url = page.url().replace(/token=[^&]+/, 'token=…');
+  await shot(page, '02a-dialogue-login');
+  await page.click('#login');
+  await page.waitForLoadState('networkidle');
+  await shot(page, '02b-dialogue-plan');
+  await page.click('#pay');
+  await page.waitForLoadState('networkidle');
+  await shot(page, '02c-stripe-test-checkout');
+  await page.click('#subscribe');
+  await page.waitForURL(/wc-auth\/v1\/authorize/, { timeout: 15000 });
   await page.waitForLoadState('networkidle');
   results.authorize_url = page.url();
   await shot(page, '02-woocommerce-approve-screen');

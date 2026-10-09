@@ -10,3 +10,9 @@ composer.lock
 phpcs.xml.dist
 phpunit.xml.dist
 README.md
+/assets/banner-*
+/assets/icon-*
+/assets/icon.svg
+/assets/screenshot-*
+/phpunit.xml.dist
+/.phpunit.result.cache

@@ -30,6 +30,17 @@ function apply_filters( $tag, $value ) {
 function untrailingslashit( $s ) {
 	return rtrim( $s, '/\\' );
 }
+$GLOBALS['dialogue_test_transients'] = array();
+function get_transient( $k ) {
+	return isset( $GLOBALS['dialogue_test_transients'][ $k ] ) ? $GLOBALS['dialogue_test_transients'][ $k ] : false;
+}
+function set_transient( $k, $v, $ttl = 0 ) {
+	$GLOBALS['dialogue_test_transients'][ $k ] = $v;
+	return true;
+}
+function wp_parse_url( $url, $component = -1 ) {
+	return parse_url( $url, $component );
+}
 function __( $s, $d = null ) {
 	return $s;
 }

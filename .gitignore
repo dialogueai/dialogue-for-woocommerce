@@ -1,0 +1,13 @@
+/vendor/
+/node_modules/
+/build/
+*.zip
+.phpunit.result.cache
+/tests/e2e/.data/
+/tests/e2e/certs/
+/tests/e2e/out/
+/tests/e2e/shots/
+/tests/e2e/logs/
+/tests/e2e/mock/lib/
+/tests/e2e/mock/*.pem
+/tests/e2e/mock/public/cart-e2e.js

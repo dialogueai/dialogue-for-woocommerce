@@ -1,0 +1,45 @@
+services:
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wp
+      MYSQL_USER: wp
+      MYSQL_PASSWORD: wp
+  wp:
+    image: wordpress:6.8-php8.2-apache
+    depends_on: [db]
+    ports: ["8089:80"]
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp
+      WORDPRESS_DB_NAME: wp
+      WORDPRESS_CONFIG_EXTRA: |
+        define('DIALOGUE_WC_API_BASE', 'https://host.docker.internal:4556');
+        define('WP_ENVIRONMENT_TYPE', 'local');
+    volumes:
+      - wpdata:/var/www/html
+      - ../..:/var/www/html/wp-content/plugins/dialogue-for-woocommerce:ro
+      - ./mu:/var/www/html/wp-content/mu-plugins:ro
+    extra_hosts: ["host.docker.internal:host-gateway"]
+  cli:
+    image: wordpress:cli-php8.2
+    depends_on: [wp]
+    user: "33:33"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp
+      WORDPRESS_DB_NAME: wp
+      WORDPRESS_CONFIG_EXTRA: |
+        define('DIALOGUE_WC_API_BASE', 'https://host.docker.internal:4556');
+        define('WP_ENVIRONMENT_TYPE', 'local');
+    volumes:
+      - wpdata:/var/www/html
+      - ../..:/var/www/html/wp-content/plugins/dialogue-for-woocommerce
+      - ./mu:/var/www/html/wp-content/mu-plugins:ro
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    entrypoint: ["sleep", "infinity"]
+volumes:
+  wpdata:

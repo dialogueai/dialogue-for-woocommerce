@@ -1,0 +1,9 @@
+.dialogue-wc-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:20px 24px;max-width:720px;margin-top:16px}
+.dialogue-wc-status{display:inline-block;font-weight:600;padding:4px 10px;border-radius:999px;background:#f0f0f1;color:#50575e;margin:0 0 8px}
+.dialogue-wc-status--on{background:#edfaef;color:#00a32a}
+.dialogue-wc-error{color:#d63638}
+.dialogue-wc-inline{display:inline-block;margin-right:8px}
+.dialogue-wc-actions{margin:16px 0}
+.dialogue-wc-log{max-width:960px}
+.dialogue-wc-log--error td{color:#d63638}
+.dialogue-wc-log--warning td{color:#996800}
